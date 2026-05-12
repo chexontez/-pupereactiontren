@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Игра - Тренажер реакции{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card bg-light text-dark">
+            <div class="card-header text-center">
+                <h2>Тест на реакцию</h2>
+                <p class="mb-0">Нажмите кнопку в зависимости от эмоджи и цвета фона</p>
+            </div>
+            <div class="card-body">
+
+                <div class="mb-3 text-center d-flex justify-content-center align-items-center">
+                    <label for="rounds-input" class="form-label me-2">Количество раундов:</label>
+                    <input type="number" id="rounds-input" class="form-control d-inline-block w-auto me-2" value="30" min="1" max="100">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="presetRoundsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Шаблоны
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="presetRoundsDropdown">
+                            <li><a class="dropdown-item" href="#" data-value="10">10 раундов</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="20">20 раундов</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="30">30 раундов</a></li>
+                            <li><a class="dropdown-item" href="#" data-value="50">50 раундов</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+
+                <div id="game-container" class="text-center mb-4 p-4 rounded" style="min-height: 200px; background-color: #f8f9fa; border: 2px dashed #dee2e6;">
+                    <div id="game-message" class="h3">Приготовьтесь...</div>
+                    <div id="game-emoji" class="display-1" style="display: none;"></div>
+                </div>
+
+
+                <div class="row text-center mb-3">
+                    <div class="col">
+                        <button class="btn btn-outline-primary btn-lg game-btn" data-choice="rock" disabled>
+                            <i class="bi bi-gem me-1"></i> 1. Камень (🪨)
+                        </button>
+                    </div>
+                    <div class="col">
+                        <button class="btn btn-outline-primary btn-lg game-btn" data-choice="scissors" disabled>
+                            <i class="bi bi-cut me-1"></i> 2. Ножницы (✂️)
+                        </button>
+                    </div>
+                    <div class="col">
+                        <button class="btn btn-outline-primary btn-lg game-btn" data-choice="paper" disabled>
+                            <i class="bi bi-file-earmark-text me-1"></i> 3. Бумага (📄)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Статус и прогресс -->
+                <div class="text-center mb-3">
+                    <h5>Раунд: <span id="round-count">0</span> / <span id="total-rounds">30</span></h5>
+                    <div class="progress">
+                        <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Кнопки управления -->
+                <div class="text-center">
+                    <button id="start-btn" class="btn btn-success btn-lg me-2">
+                        <i class="bi bi-play-circle me-2"></i> Начать тест
+                    </button>
+                    <button id="end-btn" class="btn btn-danger btn-lg" disabled>
+                        <i class="bi bi-stop-circle me-2"></i> Завершить тест
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let gameActive = false;
+    let currentRound = 0;
+    let totalRounds = 30;
+    let reactionTimes = [];
+    let correctResponses = 0;
+    let falseResponses = 0;
+    let startTime = 0;
+    let minReactionTime = Infinity;
+    let maxReactionTime = -Infinity;
+
+    // Эмоджи и их соответствия
+    const emojis = {
+        'rock': '🪨',
+        'scissors': '✂️',
+        'paper': '📄'
+    };
+
+
+    const correctAnswers = {
+        'rock_red': 'scissors',
+        'rock_green': 'paper',
+        'scissors_red': 'paper',
+        'scissors_green': 'rock',
+        'paper_red': 'rock',
+        'paper_green': 'scissors'
+    };
+
+    const gameContainer = document.getElementById('game-container');
+    const gameMessage = document.getElementById('game-message');
+    const gameEmoji = document.getElementById('game-emoji');
+    const startBtn = document.getElementById('start-btn');
+    const endBtn = document.getElementById('end-btn');
+    const roundCount = document.getElementById('round-count');
+    const totalRoundsSpan = document.getElementById('total-rounds');
+    const progressBar = document.getElementById('progress-bar');
+    const gameButtons = document.querySelectorAll('.game-btn');
+    const roundsInput = document.getElementById('rounds-input');
+    const presetRoundsDropdown = document.getElementById('presetRoundsDropdown');
+
+    totalRounds = parseInt(roundsInput.value);
+    totalRoundsSpan.textContent = totalRounds;
+
+    roundsInput.addEventListener('change', () => {
+        totalRounds = parseInt(roundsInput.value);
+        if (totalRounds < 1) totalRounds = 1;
+        if (totalRounds > 100) totalRounds = 100;
+        roundsInput.value = totalRounds;
+        totalRoundsSpan.textContent = totalRounds;
+        if (!gameActive) {
+            progressBar.style.width = '0%';
+        }
+    });
+
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const value = parseInt(e.target.getAttribute('data-value'));
+            roundsInput.value = value;
+            totalRounds = value;
+            totalRoundsSpan.textContent = totalRounds;
+            if (!gameActive) {
+                progressBar.style.width = '0%';
+            }
+            // Обновляем текст кнопки выпадающего списка
+            presetRoundsDropdown.textContent = e.target.textContent;
+        });
+    });
+
+    function getRandomChoice() {
+        const choices = ['rock', 'scissors', 'paper'];
+        return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    function getRandomColor() {
+        const colors = ['red', 'green'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function startRound() {
+        if (currentRound >= totalRounds) {
+            endGame();
+            return;
+        }
+
+        currentRound++;
+        roundCount.textContent = currentRound;
+        progressBar.style.width = `${(currentRound / totalRounds) * 100}%`;
+
+        gameMessage.textContent = "Приготовьтесь...";
+        gameMessage.style.display = 'block';
+        gameEmoji.style.display = 'none';
+        gameContainer.style.backgroundColor = '#f8f9fa';
+
+        gameButtons.forEach(btn => btn.disabled = true);
+        endBtn.disabled = false;
+
+        const delay = 500 + Math.random() * 1500;
+        setTimeout(() => {
+            const emoji = getRandomChoice();
+            const color = getRandomColor();
+
+            gameMessage.style.display = 'none';
+            gameEmoji.textContent = emojis[emoji];
+            gameEmoji.style.display = 'block';
+            gameContainer.style.backgroundColor = color === 'red' ? '#f8d7da' : '#d4edda';
+
+            startTime = performance.now();
+
+            gameButtons.forEach(btn => btn.disabled = false);
+
+            gameContainer.dataset.expected = correctAnswers[`${emoji}_${color}`];
+        }, delay);
+    }
+
+    function handleChoice(choice) {
+        if (!gameActive || gameButtons[0].disabled) return;
+
+        const expected = gameContainer.dataset.expected;
+        const reactionTime = performance.now() - startTime;
+
+        if (choice === expected) {
+            reactionTimes.push(reactionTime);
+            minReactionTime = Math.min(minReactionTime, reactionTime);
+            maxReactionTime = Math.max(maxReactionTime, reactionTime);
+        }
+
+        if (choice === expected) {
+            correctResponses++;
+            gameMessage.textContent = `Правильно! Время: ${Math.round(reactionTime)}мс`;
+        } else {
+            falseResponses++;
+            gameMessage.textContent = `Неверно!`;
+        }
+
+        gameMessage.style.display = 'block';
+        gameEmoji.style.display = 'none';
+        gameContainer.style.backgroundColor = '#f8f9fa';
+
+        gameButtons.forEach(btn => btn.disabled = true);
+
+        setTimeout(startRound, 1000);
+    }
+
+    function endGame() {
+        gameActive = false;
+        startBtn.innerHTML = '<i class="bi bi-play-circle me-2"></i> Начать заново';
+        startBtn.disabled = false;
+        endBtn.disabled = true;
+
+        const avgReactionTime = reactionTimes.length > 0 ? 
+            reactionTimes.reduce((a, b) => a + b) / reactionTimes.length : 0;
+
+        fetch('/api/save_result', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                average_reaction_time: Math.round(avgReactionTime),
+                min_reaction_time: Math.round(minReactionTime === Infinity ? 0 : minReactionTime),
+                max_reaction_time: Math.round(maxReactionTime === -Infinity ? 0 : maxReactionTime),
+                correct_responses: correctResponses,
+                total_attempts: totalRounds,
+                false_responses: falseResponses
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Тест завершен!\nСреднее время реакции: ${Math.round(avgReactionTime)}мс\nМинимальное время: ${Math.round(minReactionTime === Infinity ? 0 : minReactionTime)}мс\nМаксимальное время: ${Math.round(maxReactionTime === -Infinity ? 0 : maxReactionTime)}мс\nПравильных ответов: ${correctResponses}/${totalRounds}\nНеверных ответов: ${falseResponses}\nРезультат сохранен.`);
+            } else {
+                alert('Ошибка при сохранении результата: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при отправке результата.');
+        });
+    }
+
+    startBtn.addEventListener('click', () => {
+        if (gameActive) return;
+
+        gameActive = true;
+        currentRound = 0;
+        reactionTimes = [];
+        correctResponses = 0;
+        falseResponses = 0;
+        minReactionTime = Infinity;
+        maxReactionTime = -Infinity;
+        roundCount.textContent = '0';
+        progressBar.style.width = '0%';
+        startBtn.disabled = true;
+
+        startRound();
+    });
+
+    endBtn.addEventListener('click', () => {
+        if (!gameActive) return;
+        if (confirm('Вы уверены, что хотите завершить тест досрочно?')) {
+            endGame();
+        }
+    });
+
+    gameButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            handleChoice(btn.dataset.choice);
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (!gameActive || gameButtons[0].disabled) return;
+        
+        switch(event.key) {
+            case '1':
+                handleChoice('rock');
+                break;
+            case '2':
+                handleChoice('scissors');
+                break;
+            case '3':
+                handleChoice('paper');
+                break;
+        }
+    });
+</script>
+{% endblock %}

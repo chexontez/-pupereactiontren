@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - {{ current_user.username }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card bg-light text-dark">
+            <div class="card-header">
+                <h2>Профиль: {{ current_user.username }}</h2>
+                <p class="mb-0 text-muted">Дата регистрации: {{ current_user.date_joined.strftime('%d.%m.%Y') }}</p>
+            </div>
+            <div class="card-body">
+
+
+                <h4>История тестов</h4>
+                {% if results %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Дата и время</th>
+                                <th>Среднее время реакции</th>
+                                <th>Мин/Макс время</th>
+                                <th>Правильные/Неверные</th>
+                                <th>Всего раундов</th>
+                                <th>Точность</th>
+                                <th>Сравнение с прошлым</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr>
+                                <td>{{ result.timestamp }}</td>
+                                <td>{{ '%.0f'|format(result.average_reaction_time) }} мс</td>
+                                <td>{{ '%.0f'|format(result.min_reaction_time) }} / {{ '%.0f'|format(result.max_reaction_time) }} мс</td>
+                                <td>{{ result.correct_responses }} / {{ result.false_responses }}</td>
+                                <td>{{ result.total_attempts }}</td>
+                                <td>{{ '%.1f'|format((result.correct_responses / result.total_attempts) * 100) }}%</td>
+                                <td>
+                                    {% if result.previous_avg_comparison is not none %}
+                                        {% if result.previous_avg_comparison > 0 %}
+                                            <span class="text-danger">+{{ '%.0f'|format(result.previous_avg_comparison) }} мс</span>
+                                        {% elif result.previous_avg_comparison < 0 %}
+                                            <span class="text-success">{{ '%.0f'|format(result.previous_avg_comparison) }} мс</span>
+                                        {% else %}
+                                            ±0 мс
+                                        {% endif %}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>Вы еще не проходили тесты.</p>
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">Пройти тест</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}{{ super() }}{% endblock %}

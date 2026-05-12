@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Правила игры{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-light text-dark">
+            <div class="card-header text-center">
+                <h2>Правила игры</h2>
+            </div>
+            <div class="card-body">
+                <h4>Основная механика</h4>
+                <p>В игре вам нужно быстро реагировать на появляющиеся эмоджи: 🪨 (камень), ✂️ (ножницы), 📄 (бумага).</p>
+                
+                <h4>Цвет фона</h4>
+                <p>Цвет фона определяет, что вы должны сделать:</p>
+                <ul>
+                    <li><strong>Красный фон</strong> — нужно выбрать <strong>элемент, который ПРОИГРЫВАЕТ</strong> отображенному эмоджи.</li>
+                    <li><strong>Зеленый фон</strong> — нужно выбрать <strong>элемент, который ВЫИГРЫВАЕТ</strong> отображенному эмоджи.</li>
+                </ul>
+                
+                <h4>Примеры</h4>
+                <div class="mb-3">
+                    <p><strong>Красный фон + 📄 (бумага)</strong></p>
+                    <p>Бумага ПРОИГРЫВАЕТ камню (🪨), поэтому нужно нажать кнопку <strong>1</strong>.</p>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Зеленый фон + 📄 (бумага)</strong></p>
+                    <p>Бумага ВЫИГРЫВАЕТ ножницам (✂️), поэтому нужно нажать кнопку <strong>2</strong>.</p>
+                </div>
+                
+                <h4>Кнопки</h4>
+                <p>Нажимайте на кнопки или используйте клавиши на клавиатуре:</p>
+                <ul>
+                    <li><strong>1</strong> — Камень (🪨)</li>
+                    <li><strong>2</strong> — Ножницы (✂️)</li>
+                    <li><strong>3</strong> — Бумага (📄)</li>
+                </ul>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Начать игру</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
